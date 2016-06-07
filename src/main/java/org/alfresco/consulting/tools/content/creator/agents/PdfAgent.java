@@ -2,8 +2,6 @@ package org.alfresco.consulting.tools.content.creator.agents;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Properties;
@@ -35,7 +33,6 @@ public class PdfAgent extends Thread implements Runnable {
     private static final int maxLevels = 10;
     private static volatile int levelDeep = 0;
     private static String originalFilesDeploymentLocation;
-    private static String num_pdfThreads;
     private static String files_deployment_location;
     private static String images_location;
     private static String max_files_per_folder="40";   // defaults to 40, but can be a parameter of the constructor
@@ -45,7 +42,6 @@ public class PdfAgent extends Thread implements Runnable {
         this.originalFilesDeploymentLocation = _files_deployment_location;
         this.files_deployment_location = _files_deployment_location;
         this.images_location = _images_location;
-        this.num_pdfThreads = _numThreads;
         this.properties = _properties;
     }
 
@@ -53,7 +49,6 @@ public class PdfAgent extends Thread implements Runnable {
         this.originalFilesDeploymentLocation = _files_deployment_location;
         this.files_deployment_location = _files_deployment_location;
         this.images_location = _images_location;
-        this.num_pdfThreads = _numThreads;
         this.properties = _properties;
         this.max_files_per_folder = _max_files_per_folder;
     }
@@ -259,7 +254,8 @@ public class PdfAgent extends Thread implements Runnable {
         Image localimage2 = Image.getInstance(randomFilePath2);
         document.add(localimage2);
 
-        File randomImage3 = files[rand.nextInt(size)];
+        // Do not add more images to keep the PDF size down
+        /*File randomImage3 = files[rand.nextInt(size)];
         String randomFilePath3 = randomImage3.getAbsolutePath();
         Image localimage3 = Image.getInstance(randomFilePath3);
         document.add(localimage3);
@@ -307,7 +303,7 @@ public class PdfAgent extends Thread implements Runnable {
         File randomImage12 = files[rand.nextInt(size)];
         String randomFilePath12 = randomImage12.getAbsolutePath();
         Image localimage12 = Image.getInstance(randomFilePath12);
-        document.add(localimage12);
+        document.add(localimage12);*/
 
         //                    String imageUrl = "http://lorempixel.com/800/600/sports/Created with SSMR/";
         //                    Image image2 = Image.getInstance(new URL(imageUrl));
