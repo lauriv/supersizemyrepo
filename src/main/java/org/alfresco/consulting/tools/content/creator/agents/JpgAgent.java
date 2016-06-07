@@ -1,11 +1,14 @@
 package org.alfresco.consulting.tools.content.creator.agents;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Calendar;
 import java.util.Properties;
 import java.util.Random;
 
-import org.alfresco.consulting.locator.PropertiesLocator;
 import org.alfresco.consulting.tools.content.creator.BulkImportManifestCreator;
 import org.alfresco.consulting.words.RandomWords;
 import org.apache.poi.util.IOUtils;
@@ -16,18 +19,23 @@ public class JpgAgent extends Thread implements Runnable {
      * @throws java.io.IOException
      */
 
+    private static final int maxLevels = 10;
+    private static volatile int levelDeep = 0;
+    private static String originalFilesDeploymentLocation;
     private static String files_deployment_location;
     private static String images_location;
     private static String max_files_per_folder="40";   // defaults to 40, but can be a parameter of the constructor
     private static Properties properties;
 
-    public JpgAgent(String _files_deployment_location, String _images_location, Properties _properties) {
+    public JpgAgent(final String _files_deployment_location, final String _images_location, final Properties _properties) {
+        this.originalFilesDeploymentLocation = _files_deployment_location;
         this.files_deployment_location = _files_deployment_location;
         this.images_location = _images_location;
         this.properties = _properties;
-      }
+    }
 
-    public JpgAgent(String _max_files_per_folder,String _files_deployment_location, String _images_location, Properties _properties) {
+    public JpgAgent(final String _max_files_per_folder,final String _files_deployment_location, final String _images_location, final Properties _properties) {
+        this.originalFilesDeploymentLocation = _files_deployment_location;
         this.files_deployment_location = _files_deployment_location;
         this.images_location = _images_location;
         this.properties = _properties;
@@ -35,6 +43,7 @@ public class JpgAgent extends Thread implements Runnable {
     }
 
 
+    @Override
     public void run() {
 
         RandomWords.init();
@@ -42,30 +51,27 @@ public class JpgAgent extends Thread implements Runnable {
 
         try {
             File imagesFolder = new File(images_location);
-            File[] files =   imagesFolder.listFiles();
+            File[] files = imagesFolder.listFiles();
             int size = files.length;
             Random rand = new Random();
             int number = rand.nextInt(size);
             File randomImage = files[number];
             //InputStream is =new URL("http://lorempixel.com/g/800/600/").openStream();
             InputStream is = new FileInputStream(randomImage);
-            FileOutputStream outStream = null;
             String fileName =  cal.getTimeInMillis() +"_JpegImageSSMR.jpg";
             try {
                 File deploymentFolder = new File(files_deployment_location);
                 File[] deploymentfiles =   deploymentFolder.listFiles();
                 int total_deployment_size = deploymentfiles.length;
-                Calendar calendar = Calendar.getInstance();
                 FileOutputStream out = null;
                 // checking if the deployment location is full (more than max_files_per_folder files)
                 if (total_deployment_size>Integer.valueOf(max_files_per_folder)) {
-                    String dir_name = files_deployment_location + "/" + calendar.getTimeInMillis();
-                    boolean success = (new File(dir_name)).mkdirs();
-                    this.files_deployment_location = dir_name;
-                    if (!success) {
-                        System.out.println("Failed to create directory " + dir_name );
+                    this.files_deployment_location = createDir(files_deployment_location);
+                    levelDeep++;
+                    if (levelDeep > maxLevels) {
+                        this.files_deployment_location = createDir(originalFilesDeploymentLocation);
+                        levelDeep = 1;
                     }
-                    this.files_deployment_location=dir_name;
                     out = new FileOutputStream(files_deployment_location + "/" + fileName);
                     BulkImportManifestCreator.createBulkManifest(fileName,files_deployment_location, properties);
                 } else {
@@ -83,6 +89,21 @@ public class JpgAgent extends Thread implements Runnable {
             e.printStackTrace();
         }
 
+    }
+
+    private String createDir(final String deploymentLocation) {
+        Calendar calendar = Calendar.getInstance();
+        String dir_name = deploymentLocation + "/" + calendar.getTimeInMillis();
+        boolean success = (new File(dir_name)).mkdirs();
+        if (!success) {
+            System.out.println("JPG - Failed to create directory " + dir_name );
+            if (new File(dir_name).exists()) {
+                System.out.println("JPG - Directory already exists " + dir_name );
+            } else {
+                System.out.println("JPG - Could not create directory, we will die " + dir_name );
+            }
+        }
+        return dir_name;
     }
 
 }

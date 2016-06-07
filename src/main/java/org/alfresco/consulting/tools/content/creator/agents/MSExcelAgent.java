@@ -1,33 +1,52 @@
 package org.alfresco.consulting.tools.content.creator.agents;
 
 
-import org.alfresco.consulting.locator.PropertiesLocator;
-import org.alfresco.consulting.tools.content.creator.BulkImportManifestCreator;
-import org.alfresco.consulting.words.RandomWords;
-import org.apache.poi.hssf.usermodel.*;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.util.IOUtils;
-
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Calendar;
 import java.util.Properties;
 import java.util.Random;
 
+import org.alfresco.consulting.tools.content.creator.BulkImportManifestCreator;
+import org.alfresco.consulting.words.RandomWords;
+import org.apache.poi.hssf.usermodel.HSSFClientAnchor;
+import org.apache.poi.hssf.usermodel.HSSFDataFormat;
+import org.apache.poi.hssf.usermodel.HSSFPatriarch;
+import org.apache.poi.hssf.usermodel.HSSFPicture;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.ClientAnchor;
+import org.apache.poi.ss.usermodel.DataFormat;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.util.IOUtils;
+
 public class MSExcelAgent extends Thread implements Runnable {
 
+    private static final int maxLevels = 10;
     private static String files_deployment_location;
     private static String images_location;
+    private static volatile int levelDeep = 0;
+    private static String originalFilesDeploymentLocation;
     private static String max_files_per_folder="40";   // defaults to 40, but can be a parameter of the constructor
     private static Properties properties;
 
-    public MSExcelAgent(String _files_deployment_location, String _images_location, Properties _properties) {
+    public MSExcelAgent(final String _files_deployment_location, final String _images_location, final Properties _properties) {
+        this.originalFilesDeploymentLocation = _files_deployment_location;
         this.files_deployment_location = _files_deployment_location;
         this.images_location = _images_location;
         this.properties = _properties;
-      }
+    }
 
-    public MSExcelAgent(String _max_files_per_folder,String _files_deployment_location, String _images_location, Properties _properties) {
-
+    public MSExcelAgent(final String _max_files_per_folder,final String _files_deployment_location, final String _images_location, final Properties _properties) {
+        this.originalFilesDeploymentLocation = _files_deployment_location;
         this.files_deployment_location = _files_deployment_location;
         this.images_location = _images_location;
         this.properties = _properties;
@@ -35,17 +54,17 @@ public class MSExcelAgent extends Thread implements Runnable {
     }
 
 
+    @Override
     public void run(){
-
 
         RandomWords.init();
         /* Create a Workbook and Worksheet */
         HSSFWorkbook my_workbook = new HSSFWorkbook();
         HSSFSheet my_sheet = my_workbook.createSheet("SuperSizeMyRepoBanner");
-         /* Read the input image into InputStream */
+        /* Read the input image into InputStream */
 
         File imagesFolder = new File(images_location);
-        File[] files =   imagesFolder.listFiles();
+        File[] files = imagesFolder.listFiles();
         int size = files.length;
         Random rand = new Random();
         int number = rand.nextInt(size);
@@ -54,25 +73,25 @@ public class MSExcelAgent extends Thread implements Runnable {
         int my_picture_id = 0;
         try {
             InputStream my_banner_image = new FileInputStream(randomImage);
-                /* Convert Image to byte array */
+            /* Convert Image to byte array */
             byte[] bytes = IOUtils.toByteArray(my_banner_image);
-                /* Add Picture to workbook and get a index for the picture */
+            /* Add Picture to workbook and get a index for the picture */
             my_picture_id = my_workbook.addPicture(bytes, Workbook.PICTURE_TYPE_JPEG);
-                /* Close Input Stream */
+            /* Close Input Stream */
             my_banner_image.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-                /* Create the drawing container */
+        /* Create the drawing container */
         HSSFPatriarch drawing = my_sheet.createDrawingPatriarch();
-                /* Create an anchor point */
+        /* Create an anchor point */
         ClientAnchor my_anchor = new HSSFClientAnchor();
-                /* Define top left corner, and we can resize picture suitable from there */
+        /* Define top left corner, and we can resize picture suitable from there */
         my_anchor.setCol1(2);
         my_anchor.setRow1(1);
-                /* Invoke createPicture and pass the anchor point and ID */
+        /* Invoke createPicture and pass the anchor point and ID */
         HSSFPicture my_picture = drawing.createPicture(my_anchor, my_picture_id);
-                /* Call resize method, which resizes the image */
+        /* Call resize method, which resizes the image */
         my_picture.resize();
         /* Write changes to the workbook */
 
@@ -102,21 +121,21 @@ public class MSExcelAgent extends Thread implements Runnable {
         //set font 2 to 10 point type
         f2.setFontHeightInPoints((short) 10);
         //make it red
-        f2.setColor( (short)Font.COLOR_RED );
+        f2.setColor( Font.COLOR_RED );
         //make it bold
         f2.setBoldweight(Font.BOLDWEIGHT_BOLD);
 
         f2.setStrikeout( true );
 
-        //set cell stlye
+        //set cell style
         cs.setFont(f);
         //set the cell format
         cs.setDataFormat(df.getFormat("#,##0.0"));
 
         //set a thin border
-        cs2.setBorderBottom(cs2.BORDER_THIN);
+        cs2.setBorderBottom(CellStyle.BORDER_THIN);
         //fill w fg fill color
-        cs2.setFillPattern((short) CellStyle.SOLID_FOREGROUND);
+        cs2.setFillPattern(CellStyle.SOLID_FOREGROUND);
         //set the cell format to text see DataFormat for a full list
         cs2.setDataFormat(HSSFDataFormat.getBuiltinFormat("text"));
 
@@ -124,7 +143,7 @@ public class MSExcelAgent extends Thread implements Runnable {
         cs2.setFont(f2);
 
         // set the sheet name in Unicode
-        my_workbook.setSheetName(0, "SuperSizeMyRepo "  );
+        my_workbook.setSheetName(0, "SuperSizeMyRepo ");
 
         // create a sheet with 30 rows (0-29)
         int rownum;
@@ -146,11 +165,9 @@ public class MSExcelAgent extends Thread implements Runnable {
                 // create a numeric cell
                 c = r.createCell(cellnum);
                 // do some goofy math to demonstrate decimals
-                c.setCellValue(rownum * 10000 + cellnum
+                c.setCellValue((rownum * 10000) + cellnum
                         + (((double) rownum / 1000)
-                        + ((double) cellnum / 10000)));
-
-                String cellValue;
+                                + ((double) cellnum / 10000)));
 
                 // create a string cell (see why += 2 in the
                 c = r.createCell((short) (cellnum + 1));
@@ -185,7 +202,7 @@ public class MSExcelAgent extends Thread implements Runnable {
 
         // define the third style to be the default
         // except with a thick black border at the bottom
-        cs3.setBorderBottom(cs3.BORDER_THICK);
+        cs3.setBorderBottom(CellStyle.BORDER_THICK);
 
         //create 50 cells
         for (short cellnum = (short) 0; cellnum < 50; cellnum++)
@@ -199,15 +216,9 @@ public class MSExcelAgent extends Thread implements Runnable {
         //end draw thick black border
 
 
-
-
-
-
         Calendar cal = Calendar.getInstance();
         String fileName =  cal.getTimeInMillis() +"MSExcelSSMR.xls";
 
-
-        FileOutputStream outStream = null;
 
         try {
             File deploymentFolder = new File(files_deployment_location);
@@ -221,9 +232,23 @@ public class MSExcelAgent extends Thread implements Runnable {
                 boolean success = (new File(dir_name)).mkdirs();
                 this.files_deployment_location = dir_name;
                 if (!success) {
-                    System.out.println("Failed to create directory " + dir_name );
+                    System.out.println("Excel - Failed to create directory " + dir_name );
+                    if (new File(dir_name).exists()) {
+                        System.out.println("Excel - Directory already exists " + dir_name );
+                    } else {
+                        System.out.println("Excel - Could not create directory, we will die " + dir_name );
+                    }
                 }
-                this.files_deployment_location=dir_name;
+                levelDeep++;
+                if (levelDeep > maxLevels) {
+                    dir_name = originalFilesDeploymentLocation + "/" + calendar.getTimeInMillis();
+                    success = (new File(dir_name)).mkdirs();
+                    if (!success) {
+                        System.out.println("Excel - Failed to create directory 2 " + dir_name );
+                    }
+                    this.files_deployment_location = dir_name;
+                    levelDeep = 1;
+                }
                 out = new FileOutputStream(files_deployment_location + "/" + fileName);
                 BulkImportManifestCreator.createBulkManifest(fileName,files_deployment_location, properties);
             } else {
@@ -236,13 +261,6 @@ public class MSExcelAgent extends Thread implements Runnable {
             e.printStackTrace();
         }
 
-
-
-
-
     }
-
-
-
 
 }

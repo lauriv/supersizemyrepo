@@ -1,56 +1,65 @@
 package org.alfresco.consulting.tools.content.creator.agents;
 
-import java.io.*;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.Calendar;
 import java.util.Properties;
 import java.util.Random;
 
-import org.alfresco.consulting.locator.PropertiesLocator;
 import org.alfresco.consulting.tools.content.creator.BulkImportManifestCreator;
 import org.alfresco.consulting.words.RandomWords;
 import org.apache.poi.util.IOUtils;
-import org.apache.poi.xslf.usermodel.*;
+import org.apache.poi.xslf.usermodel.SlideLayout;
+import org.apache.poi.xslf.usermodel.XMLSlideShow;
+import org.apache.poi.xslf.usermodel.XSLFPictureData;
+import org.apache.poi.xslf.usermodel.XSLFPictureShape;
+import org.apache.poi.xslf.usermodel.XSLFSlide;
+import org.apache.poi.xslf.usermodel.XSLFSlideLayout;
+import org.apache.poi.xslf.usermodel.XSLFSlideMaster;
+import org.apache.poi.xslf.usermodel.XSLFTextShape;
 
 public class MSPowerPointAgent extends Thread implements Runnable {
-    /**
-     * @param args
-     * @throws java.io.IOException
-     */
 
+    private static final int maxLevels = 10;
     private static String files_deployment_location;
     private static String images_location;
     private static String max_files_per_folder="40";
+    private static volatile int levelDeep = 0;
+    private static String originalFilesDeploymentLocation;
     private static Properties properties;
 
-    public MSPowerPointAgent(String _max_files_per_folder, String _files_deployment_location, String _images_location, Properties _properties) {
-
+    public MSPowerPointAgent(final String _max_files_per_folder, final String _files_deployment_location, final String _images_location, final Properties _properties) {
+        this.originalFilesDeploymentLocation = _files_deployment_location;
         this.files_deployment_location = _files_deployment_location;
-
-
         this.images_location = _images_location;
         this.properties = _properties;
         this.max_files_per_folder = _max_files_per_folder;
-      }
+    }
 
-    public MSPowerPointAgent(String _files_deployment_location, String _images_location, Properties _properties) {
+    public MSPowerPointAgent(final String _files_deployment_location, final String _images_location, final Properties _properties) {
+        this.originalFilesDeploymentLocation = _files_deployment_location;
         this.files_deployment_location = _files_deployment_location;
         this.images_location = _images_location;
         this.properties = _properties;
     }
 
 
-    private static int findNumberOfFiles(String dir, String ext) {
+    private static int findNumberOfFiles(final String dir, final String ext) {
         File file = new File(dir);
-        if(!file.exists()) System.out.println(dir + " Directory doesn't exists");
+        if(!file.exists()) {
+            System.out.println(dir + " Directory doesn't exists");
+        }
         File[] listFiles = file.listFiles(new MyFileNameFilter(ext));
-        if(listFiles.length ==0){
+        if (listFiles.length == 0) {
             System.out.println(dir + "doesn't have any file with extension "+ext);
             return 0;
         }else{
-            for(File f : listFiles)
+            for(File f : listFiles) {
                 System.out.println("File: "+dir+File.separator+f.getName());
+            }
             return listFiles.length;
         }
     }
@@ -58,26 +67,24 @@ public class MSPowerPointAgent extends Thread implements Runnable {
     //FileNameFilter implementation
     public static class MyFileNameFilter implements FilenameFilter{
 
-        private String ext;
+        private final String ext;
 
-        public MyFileNameFilter(String ext){
+        public MyFileNameFilter(final String ext){
             this.ext = ext.toLowerCase();
         }
         @Override
-        public boolean accept(File dir, String name) {
+        public boolean accept(final File dir, final String name) {
             return name.toLowerCase().endsWith(ext);
         }
 
     }
 
 
-	public void run()
+    @Override
+    public void run()
     {
-
-
         //System.out.println ("#### props size: " + properties.size());
         RandomWords.init();
-        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         Calendar cal = Calendar.getInstance();
         XMLSlideShow ppt = new XMLSlideShow();
         File imagesFolder = new File(images_location);
@@ -114,7 +121,6 @@ public class MSPowerPointAgent extends Thread implements Runnable {
             int idx = ppt.addPicture(pictureData, XSLFPictureData.PICTURE_TYPE_PNG);
             XSLFPictureShape pic = slide[i].createPicture(idx);
         }
-        FileOutputStream outStream = null;
 
         String fileName =  cal.getTimeInMillis() +"_MSpowerpointSSMR.ppt";
 
@@ -133,23 +139,23 @@ public class MSPowerPointAgent extends Thread implements Runnable {
                     System.out.println("Failed to create directory " + dir_name );
                 }
                 this.files_deployment_location=dir_name;
-                 out = new FileOutputStream(files_deployment_location + "/" + fileName);
-                 BulkImportManifestCreator.createBulkManifest(fileName,files_deployment_location, properties);
+                levelDeep++;
+                if (levelDeep > maxLevels) {
+                    this.files_deployment_location = originalFilesDeploymentLocation;
+                    levelDeep = 0;
+                }
+                out = new FileOutputStream(files_deployment_location + "/" + fileName);
+                BulkImportManifestCreator.createBulkManifest(fileName,files_deployment_location, properties);
             } else {
                 out = new FileOutputStream(files_deployment_location + "/" + fileName);
                 BulkImportManifestCreator.createBulkManifest(fileName,files_deployment_location, properties);
             }
-
 
             ppt.write(out);
             out.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
-
-
 
     }
 
