@@ -13,6 +13,7 @@ import org.alfresco.consulting.tools.content.creator.agents.MSExcelAgent;
 import org.alfresco.consulting.tools.content.creator.agents.MSPowerPointAgent;
 import org.alfresco.consulting.tools.content.creator.agents.MSWordAgent;
 import org.alfresco.consulting.tools.content.creator.agents.PdfAgent;
+import org.alfresco.consulting.tools.content.creator.agents.TreeAgent;
 
 public class MainExecutor {
 
@@ -124,6 +125,8 @@ public class MainExecutor {
             if (doc) {executor.execute(workerdoc);}
             if (jpg) {executor.execute(workerjpg);}
 
+            /*Runnable workerTree = new TreeAgent(maxFiles, deployPath, images, properties);
+            executor.execute(workerTree);*/
         }
         // This will make the executor accept no new threads
         // and finish all existing threads in the queue
