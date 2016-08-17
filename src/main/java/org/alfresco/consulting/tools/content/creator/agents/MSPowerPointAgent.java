@@ -3,7 +3,6 @@ package org.alfresco.consulting.tools.content.creator.agents;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.Properties;
@@ -21,62 +20,14 @@ import org.apache.poi.xslf.usermodel.XSLFSlideLayout;
 import org.apache.poi.xslf.usermodel.XSLFSlideMaster;
 import org.apache.poi.xslf.usermodel.XSLFTextShape;
 
-public class MSPowerPointAgent extends Thread implements Runnable {
-
-    private static final int maxLevels = 10;
-    private static String files_deployment_location;
-    private static String images_location;
-    private static String max_files_per_folder="40";
-    private static volatile int levelDeep = 0;
-    private static String originalFilesDeploymentLocation;
-    private static Properties properties;
-
-    public MSPowerPointAgent(final String _max_files_per_folder, final String _files_deployment_location, final String _images_location, final Properties _properties) {
-        this.originalFilesDeploymentLocation = _files_deployment_location;
-        this.files_deployment_location = _files_deployment_location;
-        this.images_location = _images_location;
-        this.properties = _properties;
-        this.max_files_per_folder = _max_files_per_folder;
-    }
+public class MSPowerPointAgent extends AbstractAgent implements Runnable {
 
     public MSPowerPointAgent(final String _files_deployment_location, final String _images_location, final Properties _properties) {
-        this.originalFilesDeploymentLocation = _files_deployment_location;
-        this.files_deployment_location = _files_deployment_location;
-        this.images_location = _images_location;
-        this.properties = _properties;
+        super(_files_deployment_location, _images_location, _properties);
     }
 
-
-    private static int findNumberOfFiles(final String dir, final String ext) {
-        File file = new File(dir);
-        if(!file.exists()) {
-            System.out.println(dir + " Directory doesn't exists");
-        }
-        File[] listFiles = file.listFiles(new MyFileNameFilter(ext));
-        if (listFiles.length == 0) {
-            System.out.println(dir + "doesn't have any file with extension "+ext);
-            return 0;
-        }else{
-            for(File f : listFiles) {
-                System.out.println("File: "+dir+File.separator+f.getName());
-            }
-            return listFiles.length;
-        }
-    }
-
-    //FileNameFilter implementation
-    public static class MyFileNameFilter implements FilenameFilter{
-
-        private final String ext;
-
-        public MyFileNameFilter(final String ext){
-            this.ext = ext.toLowerCase();
-        }
-        @Override
-        public boolean accept(final File dir, final String name) {
-            return name.toLowerCase().endsWith(ext);
-        }
-
+    public MSPowerPointAgent(final String _max_files_per_folder,final String _files_deployment_location, final String _images_location, final Properties _properties) {
+        super(_max_files_per_folder, _files_deployment_location, _images_location, _properties);
     }
 
 
@@ -126,13 +77,14 @@ public class MSPowerPointAgent extends Thread implements Runnable {
 
         try {
             File deploymentFolder = new File(files_deployment_location);
-            File[] deploymentfiles =   deploymentFolder.listFiles();
+            File[] deploymentfiles = deploymentFolder.listFiles();
             int total_deployment_size = deploymentfiles.length;
             Calendar calendar = Calendar.getInstance();
             FileOutputStream out = null;
             // checking if the deployment location is full (more than max_files_per_folder files)
             if (total_deployment_size>Integer.valueOf(max_files_per_folder)) {
                 String dir_name = files_deployment_location + "/" + calendar.getTimeInMillis();
+                // TODO create the folder metadata - and keep track of depth...
                 boolean success = (new File(dir_name)).mkdirs();
                 this.files_deployment_location = dir_name;
                 if (!success) {
@@ -140,7 +92,7 @@ public class MSPowerPointAgent extends Thread implements Runnable {
                 }
                 this.files_deployment_location=dir_name;
                 levelDeep++;
-                if (levelDeep > maxLevels) {
+                if (levelDeep > MAX_LEVELS) {
                     this.files_deployment_location = originalFilesDeploymentLocation;
                     levelDeep = 0;
                 }

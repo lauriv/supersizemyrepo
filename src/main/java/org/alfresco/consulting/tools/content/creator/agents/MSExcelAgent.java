@@ -28,31 +28,15 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.util.IOUtils;
 
-public class MSExcelAgent extends Thread implements Runnable {
-
-    private static final int maxLevels = 10;
-    private static String files_deployment_location;
-    private static String images_location;
-    private static volatile int levelDeep = 0;
-    private static String originalFilesDeploymentLocation;
-    private static String max_files_per_folder="40";   // defaults to 40, but can be a parameter of the constructor
-    private static Properties properties;
+public class MSExcelAgent extends AbstractAgent implements Runnable {
 
     public MSExcelAgent(final String _files_deployment_location, final String _images_location, final Properties _properties) {
-        this.originalFilesDeploymentLocation = _files_deployment_location;
-        this.files_deployment_location = _files_deployment_location;
-        this.images_location = _images_location;
-        this.properties = _properties;
+        super(_files_deployment_location, _images_location, _properties);
     }
 
     public MSExcelAgent(final String _max_files_per_folder,final String _files_deployment_location, final String _images_location, final Properties _properties) {
-        this.originalFilesDeploymentLocation = _files_deployment_location;
-        this.files_deployment_location = _files_deployment_location;
-        this.images_location = _images_location;
-        this.properties = _properties;
-        this.max_files_per_folder = _max_files_per_folder;
+        super(_max_files_per_folder, _files_deployment_location, _images_location, _properties);
     }
-
 
     @Override
     public void run(){
@@ -240,7 +224,7 @@ public class MSExcelAgent extends Thread implements Runnable {
                     }
                 }
                 levelDeep++;
-                if (levelDeep > maxLevels) {
+                if (levelDeep > MAX_LEVELS) {
                     dir_name = originalFilesDeploymentLocation + "/" + calendar.getTimeInMillis();
                     success = (new File(dir_name)).mkdirs();
                     if (!success) {

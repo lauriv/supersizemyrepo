@@ -3,8 +3,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -24,62 +24,14 @@ import org.apache.poi.xwpf.usermodel.UnderlinePatterns;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 
-public class MSWordAgent extends Thread implements Runnable {
-
-    private static final int maxLevels = 10;
-    private static volatile int levelDeep = 0;
-    private static String originalFilesDeploymentLocation;
-    private static String files_deployment_location;
-    private static String images_location;
-    private static Properties properties;
-    private static String max_files_per_folder="40";   // defaults to 40, but can be a parameter of the constructor
+public class MSWordAgent extends AbstractAgent implements Runnable {
 
     public MSWordAgent(final String _files_deployment_location, final String _images_location, final Properties _properties) {
-        this.originalFilesDeploymentLocation = _files_deployment_location;
-        this.files_deployment_location = _files_deployment_location;
-        this.images_location = _images_location;
-        this.properties = _properties;
+        super(_files_deployment_location, _images_location, _properties);
     }
 
     public MSWordAgent(final String _max_files_per_folder,final String _files_deployment_location, final String _images_location, final Properties _properties) {
-        this.originalFilesDeploymentLocation = _files_deployment_location;
-        this.files_deployment_location = _files_deployment_location;
-        this.images_location = _images_location;
-        this.properties = _properties;
-        this.max_files_per_folder = _max_files_per_folder;
-    }
-
-
-    private static int findNumberOfFiles(final String dir, final String ext) {
-        File file = new File(dir);
-        if(!file.exists()) {
-            System.out.println(dir + " Directory doesn't exists");
-        }
-        File[] listFiles = file.listFiles(new MyFileNameFilter(ext));
-        if(listFiles.length ==0){
-            System.out.println(dir + "doesn't have any file with extension "+ext);
-            return 0;
-        }else{
-            for(File f : listFiles) {
-                System.out.println("File: "+dir+File.separator+f.getName());
-            }
-            return listFiles.length;
-        }
-    }
-
-    //FileNameFilter implementation
-    public static class MyFileNameFilter implements FilenameFilter{
-
-        private final String ext;
-
-        public MyFileNameFilter(final String ext){
-            this.ext = ext.toLowerCase();
-        }
-        @Override
-        public boolean accept(final File dir, final String name) {
-            return name.toLowerCase().endsWith(ext);
-        }
-
+        super(_max_files_per_folder, _files_deployment_location, _images_location, _properties);
     }
 
     @Override
@@ -216,42 +168,9 @@ public class MSWordAgent extends Thread implements Runnable {
         //        }  catch (IOException e) {
         //            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         //        }
-        FileOutputStream outStream = null;
-        try {
 
-            String fileName =  cal.getTimeInMillis() +"_MSWordSSMR.docx";
-            File deploymentFolder = new File(files_deployment_location);
-            File[] deploymentfiles =   deploymentFolder.listFiles();
-            int total_deployment_size = deploymentfiles.length;
-            Calendar calendar = Calendar.getInstance();
-            // checking if the deployment location is full (more than max_files_per_folder files)
-            if (total_deployment_size>Integer.valueOf(max_files_per_folder)) {
-                String dir_name = files_deployment_location + "/" + calendar.getTimeInMillis();
-                boolean success = (new File(dir_name)).mkdirs();
-                this.files_deployment_location = dir_name;
-                if (!success) {
-                    System.out.println("Failed to create directory " + dir_name );
-                }
-                levelDeep++;
-                if (levelDeep > maxLevels) {
-                    dir_name = originalFilesDeploymentLocation + "/" + calendar.getTimeInMillis();
-                    success = (new File(dir_name)).mkdirs();
-                    if (!success) {
-                        System.out.println("Word - Failed to create directory 2 " + dir_name );
-                    }
-                    this.files_deployment_location = dir_name;
-                    levelDeep = 1;
-                }
-                outStream = new FileOutputStream(files_deployment_location + "/" + fileName);
-                BulkImportManifestCreator.createBulkManifest(fileName,files_deployment_location, properties);
-            } else {
-                outStream = new FileOutputStream(files_deployment_location + "/" + fileName);
-                BulkImportManifestCreator.createBulkManifest(fileName,files_deployment_location, properties);
-
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
+        String fileName =  cal.getTimeInMillis() +"_MSWordSSMR.docx";
+        OutputStream outStream = getWritableFileStream(fileName);
 
         try {
             document.write(outStream);
