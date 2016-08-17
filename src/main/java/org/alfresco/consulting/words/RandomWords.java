@@ -1,13 +1,10 @@
 package org.alfresco.consulting.words;
 
-import org.alfresco.consulting.locator.PropertiesLocator;
-
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Properties;
 import java.util.Random;
 /**
  * Random Word generator
@@ -19,8 +16,6 @@ import java.util.Random;
  */
 public class RandomWords
 {
-    private static Properties props = PropertiesLocator.getProperties("super-size-my-repo.properties");
-    private static String files_deployment_location = props.getProperty("files_deployment_location");
 
 	private static int maxWordsInMemory = 300000;
 	private static String wordFileName = "words.txt";
@@ -29,7 +24,6 @@ public class RandomWords
 	
 	public RandomWords()
 	{
-		
 		  wordList = readWordsFromFile(maxWordsInMemory);
 	}
 	public static void init()
