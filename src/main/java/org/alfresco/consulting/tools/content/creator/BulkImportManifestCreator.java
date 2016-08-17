@@ -62,7 +62,7 @@ public class BulkImportManifestCreator
     public static String createBulkManifest(final String SSMR_file, String path, Properties properties)
     {
 
-    	if (path != null || !path.equals("")){
+    	if (path != null && !path.equals("")){
     		files_deployment_location= path;
     	}
     	
