@@ -119,14 +119,14 @@ public class MainExecutor {
             Runnable workerjpg = new JpgAgent(maxFiles,deployPath, images, properties);
 
 
-            if (ppt) {executor.execute(workerppt);}
+            /*if (ppt) {executor.execute(workerppt);}
             if (pdf) {executor.execute(workerPdf);}
             if (xls) {executor.execute(workerxls);}
             if (doc) {executor.execute(workerdoc);}
-            if (jpg) {executor.execute(workerjpg);}
+            if (jpg) {executor.execute(workerjpg);}*/
 
-            /*Runnable workerTree = new TreeAgent(maxFiles, deployPath, images, properties);
-            executor.execute(workerTree);*/
+            Runnable workerTree = new TreeAgent(maxFiles, deployPath, images, properties);
+            executor.execute(workerTree);
         }
         // This will make the executor accept no new threads
         // and finish all existing threads in the queue
