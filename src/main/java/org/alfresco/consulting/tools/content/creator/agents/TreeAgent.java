@@ -13,13 +13,16 @@ import org.alfresco.consulting.words.RandomWords;
  */
 public class TreeAgent extends AbstractAgent implements Runnable {
 
-    protected static final NalsNodeType[] objectTypeHierarchy = {NalsNodeType.COURSE, NalsNodeType.SEQUENCE_OBJECT, NalsNodeType.CONTAINER};
+    protected static final NalsNodeType[] objectTypeHierarchy = {NalsNodeType.COURSE, NalsNodeType.SEQUENCE_OBJECT, 
+            NalsNodeType.LEARNING_BUNDLE, NalsNodeType.COMPOSITE_OBJECT};
     // misusing images_location for that
     protected static String treeSource;
 
     public enum NalsNodeType {
         COURSE("cpnals:course"),
         SEQUENCE_OBJECT("cpnals:sequenceObject"),
+        LEARNING_BUNDLE("cpnals:learningBundle"),
+        COMPOSITE_OBJECT("cpnals:compositeObject"),
         CONTAINER("cpnals:container"),
         ASSET("cpnals:asset");
 
@@ -94,6 +97,21 @@ public class TreeAgent extends AbstractAgent implements Runnable {
             props.put("cpnals:cmtContentID", UUID.randomUUID().toString());
             props.put("cpnals:mediaType", "Lesson");
             props.put("cpnals:keywords", RandomWords.getWords(3));
+            break;
+        case LEARNING_BUNDLE :
+            props.put("cpnals:cmtContentID", UUID.randomUUID().toString());
+            props.put("cpnals:keywords", RandomWords.getWords(4));
+            props.put("cpnals:versionDistrict", RandomWords.getWords(1));
+            props.put("cpnals:simplifiedDescription", RandomWords.getWords(1));
+            break;
+        case COMPOSITE_OBJECT :
+            props.put("cpnals:cmtContentID", UUID.randomUUID().toString());
+            props.put("cpnals:mediaType", "Lesson");
+            props.put("cpnals:keywords", RandomWords.getWords(2));
+            props.put("cpnals:productType", "Online Course");
+            props.put("cpnals:realizeFileType", "JPG");
+            props.put("cpnals:contentType", "Lab");
+            props.put("cpnals:simplifiedDescription", "Simple");
             break;
         case CONTAINER :
             props.put("cpnals:containerType", "Learning Model");
