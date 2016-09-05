@@ -28,41 +28,24 @@ import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 
-public class PdfAgent extends Thread implements Runnable {
-
-    private static final int maxLevels = 10;
-    private static volatile int levelDeep = 0;
-    private static String originalFilesDeploymentLocation;
-    private static String files_deployment_location;
-    private static String images_location;
-    private static String max_files_per_folder="40";   // defaults to 40, but can be a parameter of the constructor
-    private static Properties properties;
-
-    public PdfAgent(final String _files_deployment_location, final String _images_location, final String _numThreads, final Properties _properties) {
-        this.originalFilesDeploymentLocation = _files_deployment_location;
-        this.files_deployment_location = _files_deployment_location;
-        this.images_location = _images_location;
-        this.properties = _properties;
-    }
-
-    public PdfAgent(final String _max_files_per_folder, final String _files_deployment_location, final String _images_location, final String _numThreads, final Properties _properties) {
-        this.originalFilesDeploymentLocation = _files_deployment_location;
-        this.files_deployment_location = _files_deployment_location;
-        this.images_location = _images_location;
-        this.properties = _properties;
-        this.max_files_per_folder = _max_files_per_folder;
-    }
-
+public class PdfAgent extends AbstractAgent implements Runnable {
 
     private static Font catFont = new Font(Font.FontFamily.HELVETICA, 18,Font.BOLD);
     private static Font redFont = new Font(Font.FontFamily.HELVETICA, 12,Font.NORMAL, BaseColor.RED);
     private static Font subFont = new Font(Font.FontFamily.HELVETICA, 16,Font.BOLD);
     private static Font smallBold = new Font(Font.FontFamily.HELVETICA, 12,Font.BOLD);
 
+    public PdfAgent(final String _files_deployment_location, final String _images_location, final Properties _properties) {
+        super(_files_deployment_location, _images_location, _properties);
+    }
+
+    public PdfAgent(final String _max_files_per_folder,final String _files_deployment_location, final String _images_location, final Properties _properties) {
+        super(_max_files_per_folder, _files_deployment_location, _images_location, _properties);
+    }
+
 
     @Override
-    public void run()
-    {
+    public void run() {
 
         try
         {
@@ -71,11 +54,11 @@ public class PdfAgent extends Thread implements Runnable {
             int total_deployment_size = deploymentfiles.length;
             // checking if the deployment location is full (more than max_files_per_folder files)
             if (total_deployment_size>Integer.valueOf(max_files_per_folder)) {
-                this.files_deployment_location = createDir(files_deployment_location);
+                files_deployment_location = createDir(files_deployment_location);
 
                 levelDeep++;
-                if (levelDeep > maxLevels) {
-                    this.files_deployment_location = createDir(originalFilesDeploymentLocation);
+                if (levelDeep > MAX_LEVELS) {
+                    files_deployment_location = createDir(originalFilesDeploymentLocation);
                     levelDeep = 1;
                 }
             }
@@ -167,7 +150,6 @@ public class PdfAgent extends Thread implements Runnable {
         subCatPart.add(new Paragraph(RandomWords.getWords(300)));
         // now add all this to the document
         document.add(catPart);
-
     }
 
     private static void createTable(final Section subCatPart)
@@ -223,9 +205,6 @@ public class PdfAgent extends Thread implements Runnable {
         RandomWords.init();
         //DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         Calendar cal = Calendar.getInstance();
-        File imagesFolder = new File(images_location);
-        File[] files =   imagesFolder.listFiles();
-        int size = files.length;
 
         Document document = new Document();
         String fileName =  cal.getTimeInMillis() +"_PdfSSMR.pdf";
@@ -238,78 +217,33 @@ public class PdfAgent extends Thread implements Runnable {
         addMetaData(document);
         addTitlePage(document);
         addContent(document);
+        //addImages(document);
+
+        document.close();
+    }
+
+    private void addImages(final Document document) throws Exception {
+        File imagesFolder = new File(images_location);
+        File[] files = imagesFolder.listFiles();
+
+        // String imageUrl = "http://lorempixel.com/800/600/sports/Created with SSMR/";
+        // Image image2 = Image.getInstance(new URL(imageUrl));
+        // document.add(image2);
 
         //Random local image
         Random rand = new Random();
-        int number = rand.nextInt(size);
-        File randomImage = files[number];
-
-        String randomFilePath = randomImage.getAbsolutePath();
-        Image localimage1 = Image.getInstance(randomFilePath);
-        document.add(localimage1);
-
-
-        File randomImage2 = files[rand.nextInt(size)];
-        String randomFilePath2 = randomImage2.getAbsolutePath();
-        Image localimage2 = Image.getInstance(randomFilePath2);
-        document.add(localimage2);
 
         // Do not add more images to keep the PDF size down
-        /*File randomImage3 = files[rand.nextInt(size)];
-        String randomFilePath3 = randomImage3.getAbsolutePath();
-        Image localimage3 = Image.getInstance(randomFilePath3);
-        document.add(localimage3);
+        for (int i = 0; i < 2; i++) {
+            addImage(document, files, rand);
+        }
+    }
 
-        File randomImage4 = files[rand.nextInt(size)];
-        String randomFilePath4 = randomImage4.getAbsolutePath();
-        Image localimage4 = Image.getInstance(randomFilePath4);
-        document.add(localimage4);
-
-        File randomImage5 = files[rand.nextInt(size)];
-        String randomFilePath5 = randomImage5.getAbsolutePath();
-        Image localimage5 = Image.getInstance(randomFilePath5);
-        document.add(localimage5);
-
-        File randomImage6 = files[rand.nextInt(size)];
-        String randomFilePath6 = randomImage6.getAbsolutePath();
-        Image localimage6 = Image.getInstance(randomFilePath6);
-        document.add(localimage6);
-
-        File randomImage7 = files[rand.nextInt(size)];
-        String randomFilePath7 = randomImage7.getAbsolutePath();
-        Image localimage7 = Image.getInstance(randomFilePath7);
-        document.add(localimage7);
-
-        File randomImage8 = files[rand.nextInt(size)];
-        String randomFilePath8 = randomImage8.getAbsolutePath();
-        Image localimage8 = Image.getInstance(randomFilePath8);
-        document.add(localimage8);
-
-        File randomImage9 = files[rand.nextInt(size)];
-        String randomFilePath9 = randomImage8.getAbsolutePath();
-        Image localimage9 = Image.getInstance(randomFilePath9);
-        document.add(localimage9);
-
-        File randomImage10 = files[rand.nextInt(size)];
-        String randomFilePath10 = randomImage10.getAbsolutePath();
-        Image localimage10 = Image.getInstance(randomFilePath10);
-        document.add(localimage10);
-
-        File randomImage11 = files[rand.nextInt(size)];
-        String randomFilePath11 = randomImage11.getAbsolutePath();
-        Image localimage11 = Image.getInstance(randomFilePath11);
-        document.add(localimage11);
-
-        File randomImage12 = files[rand.nextInt(size)];
-        String randomFilePath12 = randomImage12.getAbsolutePath();
-        Image localimage12 = Image.getInstance(randomFilePath12);
-        document.add(localimage12);*/
-
-        //                    String imageUrl = "http://lorempixel.com/800/600/sports/Created with SSMR/";
-        //                    Image image2 = Image.getInstance(new URL(imageUrl));
-        //                    document.add(image2);
-
-        document.close();
+    private void addImage(final Document document, final File[] files, final Random rand) throws Exception {
+        File randomImage11 = files[rand.nextInt(files.length)];
+        String randomFilePath = randomImage11.getAbsolutePath();
+        Image localimage = Image.getInstance(randomFilePath);
+        document.add(localimage);
     }
 }
 

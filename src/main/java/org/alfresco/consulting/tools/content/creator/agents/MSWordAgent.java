@@ -2,7 +2,6 @@ package org.alfresco.consulting.tools.content.creator.agents;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.text.DateFormat;
@@ -11,7 +10,6 @@ import java.util.Calendar;
 import java.util.Properties;
 import java.util.Random;
 
-import org.alfresco.consulting.tools.content.creator.BulkImportManifestCreator;
 import org.alfresco.consulting.tools.content.creator.CustomXWPFDocument;
 import org.alfresco.consulting.words.RandomWords;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -101,7 +99,7 @@ public class MSWordAgent extends AbstractAgent implements Runnable {
         paragraphFourRunOne.setText(" Created with SuperSizeMyRepo");
 
         XWPFParagraph paragraphSix = document.createParagraph();
-        paragraphFive.setAlignment(ParagraphAlignment.RIGHT);
+        paragraphSix.setAlignment(ParagraphAlignment.RIGHT);
         XWPFRun paragraphSixRunOne = paragraphSix.createRun();
         paragraphFiveRunOne.addBreak();
         paragraphFourRunOne.setBold(true);
@@ -122,7 +120,6 @@ public class MSWordAgent extends AbstractAgent implements Runnable {
             blipId = paragraphX.getDocument().addPictureData(new FileInputStream(randomImage), Document.PICTURE_TYPE_JPEG);
             document.createPicture(blipId,document.getNextPicNameNumber(Document.PICTURE_TYPE_JPEG),800, 600);
         } catch (InvalidFormatException e1) {
-            // TODO Auto-generated catch block
             e1.printStackTrace();
         }   catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -163,7 +160,6 @@ public class MSWordAgent extends AbstractAgent implements Runnable {
         //            String blipIdw = paragraphY.getDocument().addPictureData(is,Document.PICTURE_TYPE_JPEG);
         //            document.createPicture(blipIdw,document.getNextPicNameNumber(Document.PICTURE_TYPE_JPEG),800, 600);
         //        } catch (InvalidFormatException e1) {
-        //            // TODO Auto-generated catch block
         //            e1.printStackTrace();
         //        }  catch (IOException e) {
         //            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
@@ -174,13 +170,14 @@ public class MSWordAgent extends AbstractAgent implements Runnable {
 
         try {
             document.write(outStream);
-            outStream.close();
         } catch (FileNotFoundException e) {
             System.out.println("Second Catch");
             e.printStackTrace();
         } catch (IOException e) {
             System.out.println("Third Catch");
             e.printStackTrace();
+        } finally {
+            closeStream(outStream);
         }
 
     }

@@ -203,18 +203,17 @@ public class MSExcelAgent extends AbstractAgent implements Runnable {
         Calendar cal = Calendar.getInstance();
         String fileName =  cal.getTimeInMillis() +"MSExcelSSMR.xls";
 
-
+        FileOutputStream out = null;
         try {
             File deploymentFolder = new File(files_deployment_location);
             File[] deploymentfiles =   deploymentFolder.listFiles();
             int total_deployment_size = deploymentfiles.length;
             Calendar calendar = Calendar.getInstance();
-            FileOutputStream out = null;
             // checking if the deployment location is full (more than max_files_per_folder files)
             if (total_deployment_size>Integer.valueOf(max_files_per_folder)) {
                 String dir_name = files_deployment_location + "/" + calendar.getTimeInMillis();
                 boolean success = (new File(dir_name)).mkdirs();
-                this.files_deployment_location = dir_name;
+                files_deployment_location = dir_name;
                 if (!success) {
                     System.out.println("Excel - Failed to create directory " + dir_name );
                     if (new File(dir_name).exists()) {
@@ -230,7 +229,7 @@ public class MSExcelAgent extends AbstractAgent implements Runnable {
                     if (!success) {
                         System.out.println("Excel - Failed to create directory 2 " + dir_name );
                     }
-                    this.files_deployment_location = dir_name;
+                    files_deployment_location = dir_name;
                     levelDeep = 1;
                 }
                 out = new FileOutputStream(files_deployment_location + "/" + fileName);
@@ -240,9 +239,10 @@ public class MSExcelAgent extends AbstractAgent implements Runnable {
                 BulkImportManifestCreator.createBulkManifest(fileName,files_deployment_location, properties);
             }
             my_workbook.write(out);
-            out.close();
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            closeStream(out);
         }
 
     }

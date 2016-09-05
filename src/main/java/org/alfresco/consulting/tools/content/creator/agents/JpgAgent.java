@@ -5,8 +5,6 @@ import java.util.Calendar;
 import java.util.Properties;
 import java.util.Random;
 
-import org.alfresco.consulting.words.RandomWords;
-
 public class JpgAgent extends AbstractAgent implements Runnable {
 
     public JpgAgent(final String _files_deployment_location, final String _images_location, final Properties _properties) {
@@ -17,11 +15,8 @@ public class JpgAgent extends AbstractAgent implements Runnable {
         super(_max_files_per_folder, _files_deployment_location, _images_location, _properties);
     }
 
-
     @Override
     public void run() {
-
-        RandomWords.init();
         Calendar cal = Calendar.getInstance();
 
         try {
@@ -36,7 +31,6 @@ public class JpgAgent extends AbstractAgent implements Runnable {
 
             copyFile(fileName, randomImage);
         } catch (Exception e) {
-            System.out.println("First Catch");
             e.printStackTrace();
         }
 

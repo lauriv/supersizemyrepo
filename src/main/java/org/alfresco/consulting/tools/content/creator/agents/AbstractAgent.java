@@ -1,5 +1,6 @@
 package org.alfresco.consulting.tools.content.creator.agents;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -118,12 +119,41 @@ public abstract class AbstractAgent extends Thread {
     }
 
     protected void copyFile(final String fileName, final File originalFile) {
+        InputStream is = null;
+        OutputStream out = null;
         try {
-            InputStream is = new FileInputStream(originalFile);
-            OutputStream out = getWritableFileStream(fileName);
+            is = new FileInputStream(originalFile);
+            out = getWritableFileStream(fileName);
             IOUtils.copy(is,out);
-            out.close();
         } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            closeStream(is);
+            closeStream(out);
+        }
+    }
+
+    protected void copyFile(final File targetFile, final File originalFile) {
+        InputStream is = null;
+        OutputStream out = null;
+        try {
+            is = new FileInputStream(originalFile);
+            out = new FileOutputStream(targetFile);
+            IOUtils.copy(is, out);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            closeStream(is);
+            closeStream(out);
+        }
+    }
+
+    protected void closeStream(final Closeable stream) {
+        try {
+            if (stream != null) {
+                stream.close();
+            }
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
