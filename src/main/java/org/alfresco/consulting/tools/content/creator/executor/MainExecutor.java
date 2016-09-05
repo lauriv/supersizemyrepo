@@ -13,6 +13,7 @@ import org.alfresco.consulting.tools.content.creator.agents.MSExcelAgent;
 import org.alfresco.consulting.tools.content.creator.agents.MSPowerPointAgent;
 import org.alfresco.consulting.tools.content.creator.agents.MSWordAgent;
 import org.alfresco.consulting.tools.content.creator.agents.PdfAgent;
+import org.alfresco.consulting.tools.content.creator.agents.PNalsAgent;
 import org.alfresco.consulting.tools.content.creator.agents.TreeAgent;
 
 public class MainExecutor {
@@ -112,11 +113,11 @@ public class MainExecutor {
 
         for (int i = 0; i < Integer.valueOf(num_Threads); i++) {
 
-            Runnable workerppt = new MSPowerPointAgent(maxFiles,deployPath, images, properties);
-            Runnable workerPdf = new PdfAgent(maxFiles,deployPath, images, num_Threads, properties);
-            Runnable workerxls = new MSExcelAgent(maxFiles,deployPath, images, properties);
-            Runnable workerdoc = new MSWordAgent(maxFiles,deployPath, images, properties);
-            Runnable workerjpg = new JpgAgent(maxFiles,deployPath, images, properties);
+            Runnable workerppt = new MSPowerPointAgent(maxFiles, deployPath, images, properties);
+            Runnable workerPdf = new PdfAgent(maxFiles, deployPath, images, properties);
+            Runnable workerxls = new MSExcelAgent(maxFiles, deployPath, images, properties);
+            Runnable workerdoc = new MSWordAgent(maxFiles, deployPath, images, properties);
+            Runnable workerjpg = new JpgAgent(maxFiles, deployPath, images, properties);
 
 
             /*if (ppt) {executor.execute(workerppt);}
@@ -125,8 +126,11 @@ public class MainExecutor {
             if (doc) {executor.execute(workerdoc);}
             if (jpg) {executor.execute(workerjpg);}*/
 
-            Runnable workerTree = new TreeAgent(maxFiles, deployPath, images, properties);
-            executor.execute(workerTree);
+            //Runnable workerTree = new TreeAgent(maxFiles, deployPath, images, properties);
+            //executor.execute(workerTree);
+
+            Runnable workerPNals = new PNalsAgent(maxFiles, deployPath, images, properties);
+            executor.execute(workerPNals);
         }
         // This will make the executor accept no new threads
         // and finish all existing threads in the queue
