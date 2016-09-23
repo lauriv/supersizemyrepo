@@ -16,19 +16,19 @@ import org.alfresco.consulting.words.RandomWords;
  */
 public class PNalsAgent extends AbstractAgent implements Runnable {
 
-    protected static final NalsNodeType[] objectTypeHierarchy = {NalsNodeType.COURSE, NalsNodeType.SEQUENCE_OBJECT, 
-            NalsNodeType.LEARNING_BUNDLE, NalsNodeType.COMPOSITE_OBJECT, NalsNodeType.ASSET};
     // misusing images_location for that
     protected static String treeSource;
 
-    private Map<NalsNodeType, Integer> objects = new HashMap<>();
+    private static final String courseName = "PearsonCourseSmall";
 
     public enum NalsNodeType {
         COURSE("cpnals:course"),
         SEQUENCE_OBJECT("cpnals:sequenceObject"),
         LEARNING_BUNDLE("cpnals:learningBundle"),
+        CONTENT_OBJECT("cpnals:contentObject"),
         COMPOSITE_OBJECT("cpnals:compositeObject"),
         CONTAINER("cpnals:container"),
+        CM_CONTENT("cm:content"),
         ASSET("cpnals:asset");
 
         String value;
@@ -45,23 +45,11 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
     public PNalsAgent(final String _files_deployment_location, final String _treeSource, final Properties _properties) {
         super(_files_deployment_location, null, _properties);
         treeSource = _treeSource;
-        initMap();
     }
 
     public PNalsAgent(final String _max_files_per_folder, final String _files_deployment_location, final String _treeSource, final Properties _properties) {
         super(_max_files_per_folder, _files_deployment_location, null, _properties);
         treeSource = _treeSource;
-        initMap();
-    }
-
-    private void initMap() {
-        // 15000 items = 1 course x 50 x 30 x 10
-        // 60000 items = 1 course x 50 x 30 x 40 ?
-        objects.put(NalsNodeType.COURSE, Integer.valueOf(1));
-        objects.put(NalsNodeType.SEQUENCE_OBJECT, Integer.valueOf(50));
-        objects.put(NalsNodeType.LEARNING_BUNDLE, Integer.valueOf(30));
-        //objects.put(NalsNodeType.COMPOSITE_OBJECT, Integer.valueOf(20));
-        objects.put(NalsNodeType.ASSET, Integer.valueOf(40));
     }
 
     @Override
@@ -70,37 +58,70 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
 
         try {
             final File sourceFolder = new File(files_deployment_location);
-            processFolder(sourceFolder, 0);
+            processFolder(sourceFolder, NalsNodeType.COURSE);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    protected void processFolder(final File folder, final int level) {
-        if (level > objectTypeHierarchy.length) return;
-        final NalsNodeType containerType = objectTypeHierarchy[Math.min(level, objectTypeHierarchy.length - 1)];
-        final Integer count = objects.get(containerType);
-        System.out.println("processFolder() " + containerType + " = " + count);
-        try {
-            if (count == null) {
-                processFolder(folder, level + 1);
-            } else {
-                for (int i = 0; i < count; i++) {
-                    final String courseName = RandomWords.getWords(2);
-                    final String cleanName = courseName.replaceAll("/", "-").replaceAll("\\.", "-");
-                    if (!NalsNodeType.ASSET.equals(containerType)) {
-                        final File courseFolder = new File(folder.getAbsolutePath() + "/" + cleanName);
-                        courseFolder.mkdirs();
-                        createMetadataFile(courseFolder, containerType);
-                        processFolder(courseFolder, level + 1);
-                    } else {
-                        populateRandomFile(folder, cleanName, containerType);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+    private Map<NalsNodeType, Integer> getChildrenForType(final NalsNodeType type) {
+        final Map<NalsNodeType, Integer> objects = new HashMap<>();
+        switch(type) {
+        case COURSE :
+            objects.put(NalsNodeType.SEQUENCE_OBJECT, Integer.valueOf(10));
+            break;
+        case SEQUENCE_OBJECT :
+            objects.put(NalsNodeType.LEARNING_BUNDLE, Integer.valueOf(8));
+            break;
+        case LEARNING_BUNDLE :
+            objects.put(NalsNodeType.CONTENT_OBJECT, Integer.valueOf(16));
+            objects.put(NalsNodeType.COMPOSITE_OBJECT, Integer.valueOf(4));
+            break;
+        case COMPOSITE_OBJECT :
+            objects.put(NalsNodeType.CM_CONTENT, Integer.valueOf(2));
+            break;
+        case CONTENT_OBJECT :
+            objects.put(NalsNodeType.ASSET, Integer.valueOf(1));
+            break;
+        case ASSET :
+            break;
+        default:
+            break;
         }
+        return objects;
+    }
+
+    protected void processFolder(final File folder, final NalsNodeType type) {
+        File item = processItem(folder, type);
+        final Map<NalsNodeType, Integer> childrenOfType = getChildrenForType(type);
+        for (final NalsNodeType childType : childrenOfType.keySet()) {
+            final Integer count = childrenOfType.get(childType);
+            System.out.println("processFolder() " + childType + " = " + count);
+            try {
+                for (int i = 0; count != null && i < count; i++) {
+                    processFolder(item, childType);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.println("processFolder() completed " + type);
+    }
+
+    private File processItem(final File parent, final NalsNodeType type) {
+        final String randomStr = RandomWords.getWords(2);
+        final String itemName = (NalsNodeType.COURSE.equals(type)) ? courseName : 
+            randomStr.replaceAll("/", "-").replaceAll("\\.", "-");
+        File item = null;
+        if (NalsNodeType.ASSET.equals(type) || NalsNodeType.CM_CONTENT.equals(type)) {
+            item = populateRandomFile(parent, itemName, type);
+            createMetadataFile(item, type);
+        } else {
+            item = new File(parent.getAbsolutePath() + "/" + itemName);
+            item.mkdirs();
+            createMetadataFile(item, type);
+        }
+        return item;
     }
 
     private void createMetadataFile(final File sourceFolder, final NalsNodeType type) {
@@ -108,8 +129,8 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
         props.put("cpnals:discipline", "Science");
         switch(type) {
         case COURSE :
-            props.put("cm:name", "Course60000");
-            props.put("cm:title", "Course60000 Title");
+            props.put("cm:name", courseName);
+            props.put("cm:title", courseName + " Title");
             props.put("cpnals:courseAbbreviation", sourceFolder.getName().substring(0, 5).toUpperCase());
             props.put("cpnals:productType", "Big Book/Big Shared Book");
             break;
@@ -133,6 +154,13 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
             props.put("cpnals:contentType", "Lab");
             props.put("cpnals:simplifiedDescription", "Simple");
             break;
+        case CONTENT_OBJECT :
+            props.put("cpnals:cmtContentID", UUID.randomUUID().toString());
+            props.put("cpnals:mediaType", "Link");
+            props.put("cpnals:keywords", RandomWords.getWords(1));
+            props.put("cpnals:contentType", "Various Media");
+            props.put("cpnals:simplifiedDescription", "CO");
+            break;
         case CONTAINER :
             props.put("cpnals:containerType", "Learning Model");
             props.put("cpnals:productType", "Big Book/Big Shared Book");
@@ -151,7 +179,7 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
         BulkImportManifestCreator.createBulkManifest(sourceFolder.getName(), sourceFolder.getParent(), props);
     }
 
-    private void populateRandomFile(final File targetFolder, final String fileName, final NalsNodeType nodeType) {
+    private File populateRandomFile(final File targetFolder, final String fileName, final NalsNodeType nodeType) {
         try {
             File imagesFolder = new File(treeSource);
             File[] files = imagesFolder.listFiles();
@@ -163,9 +191,11 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
             final File targetFile = new File(targetFolder.getAbsolutePath() + "/" + targetFileName);
             createMetadataFile(targetFile, nodeType);
             copyFile(targetFile, randomFile);
+            return targetFile;
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return null;
     }
 
     private String getExtension(final File file) {
@@ -183,9 +213,12 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
                 .withName(file.getName())
                 .withTitle(file.getName() + " Title")
                 .withDescription(RandomWords.getWords(2) + " Description")
-                .withCreator("admin")
-                .withGradeFrom(String.valueOf(gradeFrom))
-                .withGradeTo(String.valueOf(Math.max(gradeFrom, gradeTo)));
+                .withCreator("admin");
+        if (!NalsNodeType.CM_CONTENT.equals(type)) {
+            propsBuilder = propsBuilder
+                    .withGradeFrom(String.valueOf(gradeFrom))
+                    .withGradeTo(String.valueOf(Math.max(gradeFrom, gradeTo)));
+        }
         return propsBuilder.build();
     }
 
