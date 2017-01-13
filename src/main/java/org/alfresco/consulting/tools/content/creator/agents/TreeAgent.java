@@ -9,7 +9,7 @@ import org.alfresco.consulting.words.RandomWords;
 
 /**
  * Create metadata files in-place for existing folder structures, making them importable via BFSIT.<p>
- * Pearson-NALS specific at the moment.
+ * NALS specific at the moment.
  */
 public class TreeAgent extends AbstractAgent implements Runnable {
 
