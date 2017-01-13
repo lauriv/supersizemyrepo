@@ -1,7 +1,9 @@
 package org.alfresco.consulting.tools.content.creator.agents;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
@@ -16,12 +18,17 @@ import org.alfresco.consulting.words.RandomWords;
  */
 public class PNalsAgent extends AbstractAgent implements Runnable {
 
-    // misusing images_location for that
+    // misusing images_location (in config) for that
     protected static String treeSource;
 
-    private static final String courseName = "PearsonCourseSmall";
+    private static final String courseName = "CourseLarge";
+
+    // Assume these will be imported separately...
+    private List<String> assetNames = new ArrayList<>();
+    private List<String> thumbnailNames = new ArrayList<>();
 
     public enum NalsNodeType {
+        PROGRAM("cpnals:program"),
         COURSE("cpnals:course"),
         SEQUENCE_OBJECT("cpnals:sequenceObject"),
         LEARNING_BUNDLE("cpnals:learningBundle"),
@@ -57,6 +64,20 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
         RandomWords.init();
 
         try {
+            // the files_deployment_location should be the Document library of a Collections site - or a Program...?
+            // assumption: all of these files to be bulk imported into site Doc Lib
+            //File assetsFolder = new File(treeSource);
+            File assetsFolder = new File("/Users/lvorno/Documents/TestFiles/assets");
+            File[] files = assetsFolder.listFiles();
+            for (File f : files) {
+                assetNames.add(f.getName());
+            }
+            File imagesFolder = new File("/Users/lvorno/Documents/TestFiles/Images");
+            File[] files2 = imagesFolder.listFiles();
+            for (File f : files2) {
+                thumbnailNames.add(f.getName());
+            }
+
             final File sourceFolder = new File(files_deployment_location);
             processFolder(sourceFolder, NalsNodeType.COURSE);
         } catch (Exception e) {
@@ -67,21 +88,24 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
     private Map<NalsNodeType, Integer> getChildrenForType(final NalsNodeType type) {
         final Map<NalsNodeType, Integer> objects = new HashMap<>();
         switch(type) {
+        case PROGRAM :
+            objects.put(NalsNodeType.COURSE, Integer.valueOf(1));
+            break;
         case COURSE :
             objects.put(NalsNodeType.SEQUENCE_OBJECT, Integer.valueOf(10));
             break;
         case SEQUENCE_OBJECT :
-            objects.put(NalsNodeType.LEARNING_BUNDLE, Integer.valueOf(8));
+            objects.put(NalsNodeType.LEARNING_BUNDLE, Integer.valueOf(10));
             break;
         case LEARNING_BUNDLE :
-            objects.put(NalsNodeType.CONTENT_OBJECT, Integer.valueOf(16));
-            objects.put(NalsNodeType.COMPOSITE_OBJECT, Integer.valueOf(4));
+            objects.put(NalsNodeType.CONTENT_OBJECT, Integer.valueOf(50));
+            objects.put(NalsNodeType.COMPOSITE_OBJECT, Integer.valueOf(50));
             break;
         case COMPOSITE_OBJECT :
-            objects.put(NalsNodeType.CM_CONTENT, Integer.valueOf(2));
+            //objects.put(NalsNodeType.CM_CONTENT, Integer.valueOf(2));
             break;
         case CONTENT_OBJECT :
-            objects.put(NalsNodeType.ASSET, Integer.valueOf(1));
+            //objects.put(NalsNodeType.ASSET, Integer.valueOf(1));
             break;
         case ASSET :
             break;
@@ -114,11 +138,10 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
             randomStr.replaceAll("/", "-").replaceAll("\\.", "-");
         File item = null;
         if (NalsNodeType.ASSET.equals(type) || NalsNodeType.CM_CONTENT.equals(type)) {
-            item = populateRandomFile(parent, itemName, type);
+            item = createRandomFile(parent, itemName, type);
             createMetadataFile(item, type);
         } else {
-            item = new File(parent.getAbsolutePath() + "/" + itemName);
-            item.mkdirs();
+            item = createRandomFolder(parent, itemName, type);
             createMetadataFile(item, type);
         }
         return item;
@@ -128,6 +151,9 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
         final Properties props = buildProperties(sourceFolder, type);
         props.put("cpnals:discipline", "Science");
         switch(type) {
+        case PROGRAM :
+            props.put("cm:name", "Program_" + courseName);
+            props.put("cm:title", "Program Title");
         case COURSE :
             props.put("cm:name", courseName);
             props.put("cm:title", courseName + " Title");
@@ -138,12 +164,16 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
             props.put("cpnals:cmtContentID", UUID.randomUUID().toString());
             props.put("cpnals:mediaType", "Lesson");
             props.put("cpnals:keywords", RandomWords.getWords(3));
+            props.put("cpnals:thumbnailToLink", getRandomThumbnailsName());
+            props.put("cpnals:gridThumbnailToLink", getRandomThumbnailsName());
             break;
         case LEARNING_BUNDLE :
             props.put("cpnals:cmtContentID", UUID.randomUUID().toString());
             props.put("cpnals:keywords", RandomWords.getWords(4));
             props.put("cpnals:versionDistrict", RandomWords.getWords(1));
             props.put("cpnals:simplifiedDescription", RandomWords.getWords(1));
+            props.put("cpnals:thumbnailToLink", getRandomThumbnailsName());
+            props.put("cpnals:gridThumbnailToLink", getRandomThumbnailsName());
             break;
         case COMPOSITE_OBJECT :
             props.put("cpnals:cmtContentID", UUID.randomUUID().toString());
@@ -153,13 +183,21 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
             props.put("cpnals:realizeFileType", "JPG");
             props.put("cpnals:contentType", "Lab");
             props.put("cpnals:simplifiedDescription", "Simple");
+            props.put("cpnals:assetsToLink", getRandomAssetName());
+            props.put("cpnals:thumbnailToLink", getRandomThumbnailsName());
+            props.put("cpnals:gridThumbnailToLink", getRandomThumbnailsName());
             break;
         case CONTENT_OBJECT :
             props.put("cpnals:cmtContentID", UUID.randomUUID().toString());
             props.put("cpnals:mediaType", "Link");
             props.put("cpnals:keywords", RandomWords.getWords(1));
+            // For Content Object that should be <> "Sequence"
+            props.put("cpnals:realizeFileType", "JPG");
             props.put("cpnals:contentType", "Various Media");
             props.put("cpnals:simplifiedDescription", "CO");
+            props.put("cpnals:assetsToLink", getRandomAssetName());
+            props.put("cpnals:thumbnailToLink", getRandomThumbnailsName());
+            props.put("cpnals:gridThumbnailToLink", getRandomThumbnailsName());
             break;
         case CONTAINER :
             props.put("cpnals:containerType", "Learning Model");
@@ -179,7 +217,13 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
         BulkImportManifestCreator.createBulkManifest(sourceFolder.getName(), sourceFolder.getParent(), props);
     }
 
-    private File populateRandomFile(final File targetFolder, final String fileName, final NalsNodeType nodeType) {
+    private File createRandomFolder(final File targetFolder, final String fileName, final NalsNodeType nodeType) {
+        File item = new File(targetFolder.getAbsolutePath() + "/" + fileName);
+        item.mkdirs();
+        return item;
+    }
+
+    private File createRandomFile(final File targetFolder, final String fileName, final NalsNodeType nodeType) {
         try {
             File imagesFolder = new File(treeSource);
             File[] files = imagesFolder.listFiles();
@@ -196,6 +240,20 @@ public class PNalsAgent extends AbstractAgent implements Runnable {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private String getRandomAssetName() {
+        return getRandomElement(assetNames);
+    }
+
+    private String getRandomThumbnailsName() {
+        return getRandomElement(thumbnailNames);
+    }
+
+    private String getRandomElement(List<String> elements) {
+        Random rand = new Random();
+        int number = rand.nextInt(elements.size());
+        return elements.get(Math.max(0, number - 1));
     }
 
     private String getExtension(final File file) {
